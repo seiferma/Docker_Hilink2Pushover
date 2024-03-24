@@ -22,4 +22,4 @@ ENV PATH="/opt/app/venv/bin:$PATH"
 COPY --from=builder /opt/app/venv /opt/app/venv
 COPY --from=builder /opt/app/src /opt/app
 
-CMD ["python3", "app.py"]
+ENTRYPOINT ["python3", "app.py"]
