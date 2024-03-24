@@ -1,0 +1,3 @@
+[submodule "hilinkapi"]
+	path = hilinkapi
+	url = https://github.com/chanakalin/hilinkapi.git
