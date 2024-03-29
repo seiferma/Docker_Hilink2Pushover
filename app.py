@@ -30,10 +30,16 @@ class HuaweiAPI:
 
     def __init__(self, name : str, ip : str, user : str, password : str) -> None:
         self.api = webui(name, ip, user, password, logging)
-        self.api.start()
-        self.initialize()
 
-    def initialize(self):
+    def __enter__(self):
+        self.api.start()
+        self._init_session()
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.api.stop()
+
+    def _init_session(self):
         # wait until validate the session
         limit = time.time() + HuaweiAPI.INIT_TIMEOUT_SECONDS
         while not self.api.getValidSession():
@@ -84,7 +90,7 @@ class HuaweiAPI:
 
     def _httpPost(self, endpoint : str, payload : str) -> requests.Response:
         if not self.api.getValidSession():
-            self.initialize()
+            self._init_session()
 
         headers = {
             'X-Requested-With':'XMLHttpRequest',
@@ -126,14 +132,12 @@ def action(hilink: HuaweiAPI, pushover: PushoverAPI):
     hilink.deleteSms(sms_index)
 
 
-def start_loop(hilink_modem_name:str, hilink_api: str, hilink_user: str, hilink_password: str, pushover_user: str, pushover_token: str):
-    hilink = HuaweiAPI(hilink_modem_name, hilink_api, hilink_user, hilink_password)
+def run_loop(hilink_modem_name:str, hilink_api: str, hilink_user: str, hilink_password: str, pushover_user: str, pushover_token: str):
     pushover = PushoverAPI(pushover_user, pushover_token)
-
-    while True:
-        action(hilink, pushover)
-        time.sleep(10)
-
+    with HuaweiAPI(hilink_modem_name, hilink_api, hilink_user, hilink_password) as hilink:
+        while True:
+            action(hilink, pushover)
+            time.sleep(10)
 
 def cli():
     # parse configuration from command line
@@ -155,7 +159,7 @@ def cli():
     logging.basicConfig(format='%(asctime)s --  %(name)s::%(levelname)s -- {%(pathname)s:%(lineno)d} -- %(message)s', level=args.log_level, datefmt="%Y-%m-%d %I:%M:%S %p:%Z")
 
     # start processing loop
-    start_loop(args.hilink_modem_name, args.hilink_ip, args.hilink_user, args.hilink_password, args.pushover_user, args.pushover_token)
+    run_loop(args.hilink_modem_name, args.hilink_ip, args.hilink_user, args.hilink_password, args.pushover_user, args.pushover_token)
 
 
 if __name__ == '__main__':
